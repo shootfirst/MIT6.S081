@@ -277,6 +277,8 @@ fork(void)
 
   np->parent = p;
 
+  np->tracemusk = p->tracemusk;   /** the child tracemusk should be same as parent so that we can trace children*/
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -692,4 +694,19 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// Get the number of processes whose state is not UNUSED
+uint64
+getunusedpro(void)
+{
+  struct proc *p;
+  uint64 i = 0;
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED)
+      i++;
+    release(&p->lock);
+  }
+  return i;
 }

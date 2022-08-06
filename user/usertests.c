@@ -2722,7 +2722,7 @@ main(int argc, char *argv[])
     }
   }
 
-  printf("usertests starting\n");
+  printf("\n");
   int free0 = countfree();
   int free1 = 0;
   int fail = 0;

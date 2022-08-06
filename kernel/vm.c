@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+// #include "proc.h"
 
 /*
  * the kernel's page table.
@@ -16,11 +17,12 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
 
 /*
- * create a direct-map page table for the kernel.
+ * create a direct-map page table for the kernel
  */
 void
 kvminit()
 {
+
   kernel_pagetable = (pagetable_t) kalloc();
   memset(kernel_pagetable, 0, PGSIZE);
 
@@ -110,6 +112,15 @@ walkaddr(pagetable_t pagetable, uint64 va)
   pa = PTE2PA(*pte);
   return pa;
 }
+
+// // add a mapping to the user kernel page table.
+// // does not flush TLB or enable paging.
+// void
+// ukvmmap(pagetable_t kpagetable, uint64 va, uint64 pa, uint64 sz, int perm)
+// {
+//   if(mappages(kpagetable, va, sz, pa, perm) != 0)
+//     panic("kvmmap");
+// }
 
 // add a mapping to the kernel page table.
 // only used when booting.
@@ -439,4 +450,41 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+//Print dot
+void
+vmprintdot(int depth)
+{
+  for(int a = 0; a < depth; a++)
+    printf(" ..");
+}
+
+// print pagetable
+void
+vmprintpagetbl(pagetable_t pagetable, int depth)
+{
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+      vmprintdot(depth);
+      printf("%d: pte %p pa %p\n", i, pte, PTE2PA(pte));
+      vmprintpagetbl((pagetable_t)PTE2PA(pte), depth + 1);
+    } else if(pte & PTE_V){
+      vmprintdot(depth);
+      printf("%d: pte %p pa %p\n", i, pte, PTE2PA(pte));
+    }
+  }
+}
+
+// print that pagetable in the format described below
+// page table 0x0000000087f6e000
+// ..0: pte 0x0000000021fda801 pa 0x0000000087f6a000
+// .. ..0: pte 0x0000000021fda401 pa 0x0000000087f69000
+// .. .. ..0: pte 0x0000000021fdac1f pa 0x0000000087f6b000
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  vmprintpagetbl(pagetable, 1);
 }

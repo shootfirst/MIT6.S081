@@ -38,7 +38,7 @@ freerange(void *pa_start, void *pa_end)
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
 }
-
+  
 // Free the page of physical memory pointed at by v,
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
@@ -55,12 +55,41 @@ kfree(void *pa)
   memset(pa, 1, PGSIZE);
 
   r = (struct run*)pa;
-
+  
   acquire(&kmem.lock);
   r->next = kmem.freelist;
   kmem.freelist = r;
   release(&kmem.lock);
 }
+
+// void
+// kfree1(void *pa, int father, int depth)
+// {
+  
+//   struct run *r;
+
+//   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+//     panic("kfree");
+  
+//   // Fill with junk to catch dangling refs.
+//   // memset1(pa, 1, PGSIZE, father, depth);
+//   printf("%p\n",pa);
+//   char *cdst = (char *) pa;
+//   int i;
+//   for(i = 0; i < PGSIZE; i++){
+//     cdst[i] = 1;
+//     printf("               %d  %d %d\n",father, depth, i);
+//   }
+
+//   printf("%d, %d\n", father, depth);
+//   r = (struct run*)pa;
+  
+//   acquire(&kmem.lock);
+  
+//   r->next = kmem.freelist;
+//   kmem.freelist = r;
+//   release(&kmem.lock);
+// }
 
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.

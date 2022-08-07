@@ -5,7 +5,9 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-// #include "proc.h"
+
+#include "spinlock.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -16,65 +18,12 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
-void 
-ukvmmap(pagetable_t pagetable, uint64 va, uint64 pa, uint64 sz, int perm)
-{
-  if (mappages(pagetable, va, sz, pa, perm) != 0) 
-    panic("kvmmap");
-}
-
-// proc's version of kvminit
-pagetable_t
-proc_kpagetable() 
-{
-  pagetable_t pagetable;
-  int i;
-
-  pagetable = uvmcreate();
-  for(i = 1; i < 512; i++) {
-    pagetable[i] = kernel_pagetable[i];
-  }
-
-  // uart registers
-  ukvmmap(pagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
-
-  // virtio mmio disk interface
-  ukvmmap(pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
-
-  // CLINT
-  ukvmmap(pagetable, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
-
-  // PLIC
-  ukvmmap(pagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
-
-  return pagetable;
-}
-
-
-void 
-proc_freekpagetable(pagetable_t kpagetale) 
-{
-  pte_t pte = kpagetale[0];
-  pagetable_t level1 = (pagetable_t) PTE2PA(pte);
-  for (int i = 0; i < 512; i++) {
-    pte_t pte = level1[i];
-    if (pte & PTE_V) {
-      uint64 level2 = PTE2PA(pte);
-      kfree((void *) level2);
-      level1[i] = 0;
-    }
-  }
-  kfree((void *) level1);
-  kfree((void *) kpagetale);
-}
-
 /*
- * create a direct-map page table for the kernel
+ * create a direct-map page table for the kernel.
  */
 void
 kvminit()
 {
-
   kernel_pagetable = (pagetable_t) kalloc();
   memset(kernel_pagetable, 0, PGSIZE);
 
@@ -106,7 +55,7 @@ kvminit()
 void
 kvminithart()
 {
-  w_satp(MAKE_SATP(kernel_pagetable));
+  w_satp(MAKE_SATP(kernel_pagetable)); 
   sfence_vma();
 }
 
@@ -127,19 +76,19 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 {
   if(va >= MAXVA)
     panic("walk");
-
-  for(int level = 2; level > 0; level--) {
-    pte_t *pte = &pagetable[PX(level, va)];
+  for (int level = 2; level > 0; level--)
+  {                                         
+    pte_t *pte = &pagetable[PX(level, va)]; 
     if(*pte & PTE_V) {
-      pagetable = (pagetable_t)PTE2PA(*pte);
+      pagetable = (pagetable_t)PTE2PA(*pte); 
     } else {
-      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
+      if (!alloc || (pagetable = (pde_t *)kalloc()) == 0) 
         return 0;
       memset(pagetable, 0, PGSIZE);
-      *pte = PA2PTE(pagetable) | PTE_V;
+      *pte = PA2PTE(pagetable) | PTE_V; 
     }
   }
-  return &pagetable[PX(0, va)];
+  return &pagetable[PX(0, va)]; 
 }
 
 // Look up a virtual address, return the physical address,
@@ -185,8 +134,8 @@ kvmpa(uint64 va)
   uint64 off = va % PGSIZE;
   pte_t *pte;
   uint64 pa;
-  
-  pte = walk(kernel_pagetable, va, 0);
+
+  pte = walk(myproc()->kpagetable, va, 0);
   if(pte == 0)
     panic("kvmpa");
   if((*pte & PTE_V) == 0)
@@ -433,6 +382,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 int
 copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 {
+  // return copyin_new(pagetable, dst, srcva, len);
   uint64 n, va0, pa0;
 
   while(len > 0){
@@ -440,8 +390,8 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
-    n = PGSIZE - (srcva - va0);
-    if(n > len)
+    n = PGSIZE - (srcva - va0); 
+    if (n > len)                
       n = len;
     memmove(dst, (void *)(pa0 + (srcva - va0)), n);
 
@@ -459,6 +409,7 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 int
 copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 {
+  // return copyinstr_new(pagetable, dst, srcva, max);
   uint64 n, va0, pa0;
   int got_null = 0;
 
@@ -530,4 +481,21 @@ vmprint(pagetable_t pagetable)
 {
   printf("page table %p\n", pagetable);
   vmprintpagetbl(pagetable, 1);
+}
+
+
+void 
+ukvmmap(pagetable_t pagetable, uint64 va, uint64 pa, uint64 sz, int perm)
+{
+  // return mappages(pagetable, va, sz, pa, perm);
+  if(mappages(pagetable, va, sz, pa, perm) != 0)
+    panic("ukvmmap");
+}
+
+
+void ukvmfree(pagetable_t kpagetable, uint64 sz)
+{
+  if (sz > 0)
+    uvmunmap(kpagetable, 0, PGROUNDUP(sz) / PGSIZE, 0);
+  freewalk(kpagetable);
 }

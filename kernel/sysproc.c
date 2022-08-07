@@ -47,10 +47,18 @@ sys_sbrk(void)
   if(argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
+  if (addr + n >= PLIC)
+    return -1;
   if(growproc(n) < 0)
     return -1;
+  if (copyuserptb2kernelptb(myproc()->kpagetable, myproc()->pagetable, addr, myproc()->sz) != myproc()->sz)
+  {
+    growproc(-n); 
+    return -1;
+  }
   return addr;
 }
+
 
 uint64
 sys_sleep(void)

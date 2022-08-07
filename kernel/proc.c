@@ -161,10 +161,9 @@ freeproc(struct proc *p)
   if (p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
-  //最后一个参数为1，需要同时释放内核栈的物理内存，在下次allocproc再次分配
   uvmunmap(p->kpagetable, p->kstack, 1, 1);
   if (p->kpagetable)
-    proc_freekpagetable(p->kpagetable, 0);
+    proc_freekpagetable(p->kpagetable, p->sz);
   p->kpagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -232,22 +231,22 @@ uchar initcode[] = {
     0x00, 0x00, 0x00, 0x00};
 
 // Set up first user process.
-void
-userinit(void)
+void userinit(void)
 {
   struct proc *p;
 
   p = allocproc();
   initproc = p;
-  
+
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
+  copyuserptb2kernelptb(p->kpagetable, p->pagetable, 0, p->sz);
 
   // prepare for the very first "return" from kernel to user.
-  p->trapframe->epc = 0;      // user program counter
-  p->trapframe->sp = PGSIZE;  // user stack pointer
+  p->trapframe->epc = 0;     // user program counter
+  p->trapframe->sp = PGSIZE; // user stack pointer
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
@@ -259,18 +258,21 @@ userinit(void)
 
 // Grow or shrink user memory by n bytes.
 // Return 0 on success, -1 on failure.
-int
-growproc(int n)
+int growproc(int n)
 {
   uint sz;
   struct proc *p = myproc();
 
   sz = p->sz;
-  if(n > 0){
-    if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
+  if (n > 0)
+  {
+    if ((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0)
+    {
       return -1;
     }
-  } else if(n < 0){
+  }
+  else if (n < 0)
+  {
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
   p->sz = sz;
@@ -279,25 +281,34 @@ growproc(int n)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
-int
-fork(void)
+int fork(void)
 {
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
 
   // Allocate process.
-  if((np = allocproc()) == 0){
+  if ((np = allocproc()) == 0)
+  {
     return -1;
   }
 
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0)
+  {
     freeproc(np);
     release(&np->lock);
     return -1;
   }
   np->sz = p->sz;
+
+  
+  if (copyuserptb2kernelptb(np->kpagetable, np->pagetable, 0, np->sz) != np->sz)
+  {
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
 
   np->parent = p;
 
@@ -308,8 +319,8 @@ fork(void)
   np->trapframe->a0 = 0;
 
   // increment reference counts on open file descriptors.
-  for(i = 0; i < NOFILE; i++)
-    if(p->ofile[i])
+  for (i = 0; i < NOFILE; i++)
+    if (p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
 
@@ -745,7 +756,6 @@ void procdump(void)
 
 pagetable_t proc_kpagetable(struct proc *p)
 {
-  //申请分配页表
   pagetable_t kpagetable = uvmcreate();
   if (kpagetable == 0)
     return 0;
@@ -772,5 +782,59 @@ void proc_freekpagetable(pagetable_t kpagetable, uint64 sz)
   uvmunmap(kpagetable, TRAMPOLINE, 1, 0);
   uvmunmap(kpagetable, TRAPFRAME, 1, 0);
   ukvmfree(kpagetable, sz);
+}
+
+// Copy pagetable to kpagetable, to simplify copyout. 
+int copyuserptb2kernelptb(pagetable_t kpagetable, pagetable_t pagetable, uint64 oldsz, uint64 newsz)
+  // if (right < left) {
+  //   uvmunmap(kpagetable, right, (left - right) / PGSIZE, 0);
+  //   return 0;
+  // }
+  // if (pagetable == 0) {
+  //   uvmunmap(kpagetable, 0, right / PGSIZE, 0);
+  //   return 0;
+  // }
+  // uint64 i, pa, sz = right -left;
+  // pte_t *pte;
+  // uint flags;
+  // char *mem;
+
+  // for(i = left; i < sz; i += PGSIZE){
+  //   if((pte = walk(pagetable, i, 0)) == 0)
+  //     panic("copyuserptb2kernelptb: pte should exist");
+  //   if((*pte & PTE_V) == 0)
+  //     panic("copyuserptb2kernelptb: page not present");
+  //   pa = PTE2PA(*pte);
+  //   flags = PTE_FLAGS(*pte);
+  //   if(mappages(kpagetable, i, PGSIZE, (uint64)mem, flags) != 0){
+  //     panic("copyuserptb2kernelptb: mappages to kpagetable should success");
+  //   }
+  // }
+{
+  if (oldsz == newsz) 
+  {
+    return newsz;
+  }
+  else if (oldsz < newsz) 
+  {
+    oldsz = PGROUNDUP(oldsz);
+    for (uint64 a = oldsz; a < newsz; a += PGSIZE)
+    {
+      pte_t *pte = walk(pagetable, a, 0); 
+      if (pte == 0 || (*pte & PTE_V) == 0){
+        return a;
+      }
+      ukvmmap(kpagetable, a, PTE2PA(*pte), PGSIZE, PTE_FLAGS(*pte) & ~PTE_U);        
+    }
+  }
+  else 
+  {
+    if (PGROUNDUP(newsz) < PGROUNDUP(oldsz))
+    {
+      int npages = (PGROUNDUP(oldsz) - PGROUNDUP(newsz)) / PGSIZE;
+      uvmunmap(kpagetable, PGROUNDUP(newsz), npages, 0);
+    }
+  }
+  return newsz;
 }
 

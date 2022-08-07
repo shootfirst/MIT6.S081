@@ -111,6 +111,7 @@ void            procdump(void);
 void            proc_allocfail(struct proc *);
 pagetable_t     proc_kpagetable(struct proc *);
 void            proc_freekpagetable(pagetable_t, uint64);
+int             copyuserptb2kernelptb(pagetable_t, pagetable_t, uint64, uint64);
 
 
 // swtch.S

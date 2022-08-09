@@ -182,11 +182,15 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
     if((pte = walk(pagetable, a, 0)) == 0)
       panic("uvmunmap: walk");
-    if((*pte & PTE_V) == 0)
-      panic("uvmunmap: not mapped");
+    if((*pte & PTE_V) == 0){
+      // panic("uvmunmap: not mapped");
+      // modify it to not panic if some pages aren't mapped.
+    }
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
     if(do_free){
+      if((*pte & PTE_V) == 0) 
+        continue;
       uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
     }
@@ -440,3 +444,22 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+// for lazy! va must be aligned PGSIZE. return 0 if success, -1 if failed
+int
+allocmaponepage(pagetable_t pagetable, uint64 va)
+{
+  uint64 start = PGROUNDDOWN(va);
+  char *mem;
+  mem = kalloc();
+  if(mem == 0){
+    return -1;
+  }
+  memset(mem, 0, PGSIZE);
+  if(mappages(pagetable, start, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
+    kfree(mem);
+    return -1;
+  }
+  return 0;
+}
+

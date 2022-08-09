@@ -67,7 +67,18 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
+  } else if(r_scause() == 13 || r_scause() == 15){
+    // page fault
+    
+    uint64 pagefaultaddr = r_stval();
+    if (pagefaultaddr >= p->sz){
+      printf("usertrap(): user address %p is larger than process size, pid=%d\n", pagefaultaddr, p->pid);
+      p->killed = 1;
+    } else{
+      allocmaponepage(p->pagetable, pagefaultaddr);
+    }
+
+  }else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;

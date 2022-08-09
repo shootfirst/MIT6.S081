@@ -51,8 +51,6 @@ sys_sbrk(void)
     myproc()->sz = uvmdealloc(myproc()->pagetable, myproc()->sz, myproc()->sz + n);
   else 
     myproc()->sz += n;
-  // if(growproc(n) < 0)
-  //   return -1;
   return addr;
 }
 

@@ -71,11 +71,17 @@ usertrap(void)
     // page fault
     
     uint64 pagefaultaddr = r_stval();
-    if (pagefaultaddr >= p->sz){
-      printf("usertrap(): user address %p is larger than process size, pid=%d\n", pagefaultaddr, p->pid);
+    if (pagefaultaddr >= p->sz) {
+      printf("usertrap(): page fault: user address %p is larger than process size, pid=%d\n", pagefaultaddr, p->pid);
       p->killed = 1;
-    } else{
-      allocmaponepage(p->pagetable, pagefaultaddr);
+    }else if(pagefaultaddr < PGROUNDDOWN(p->trapframe->sp)) {
+      printf("usertrap(): page fault: stack over flow, pid=%d\n", p->pid);
+      p->killed = 1;
+    }else {
+      if(allocmaponepage(p->pagetable, pagefaultaddr) == -1) {
+        printf("usertrap(): page fault: kalloc run out of memory, pid=%d\n", p->pid);
+        p->killed = 1;
+      }
     }
 
   }else {

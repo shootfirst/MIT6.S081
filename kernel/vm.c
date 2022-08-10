@@ -5,6 +5,8 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "spinlock.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -311,22 +313,30 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
-
+  // char *mem;
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
+
+    // erase write big flag
+    *pte &= ERASE_WRITE;
+    // set the cow flag true
+    *pte |= PTE_C;
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    //do not allocate new page
+    // if((mem = kalloc()) == 0)
+    //   goto err;
+    // memmove(mem, (char*)pa, PGSIZE);
+
+    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+      // kfree(mem);
       goto err;
     }
+
+    addrefcnt(pa);
   }
   return 0;
 
@@ -356,11 +366,47 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
 
+  pte_t *pte;
+  uint flags;
+
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    pa0 = walkaddr(pagetable, va0);
-    if(pa0 == 0)
+    // pa0 = walkaddr(pagetable, va0);
+    // handle cow if necessary
+    if (va0 >= MAXVA) {
+      printf("copyout: address is larger than max\n");
       return -1;
+    }
+    // } else if (va0 >= myproc()->sz) {
+    //   printf("copyout: address is larger than size of process\n");
+    //   return -1;
+    // } 
+    if((pte = walk(pagetable, va0, 0)) == 0)
+      return -1;
+    if((*pte & PTE_V) == 0)
+      return -1;
+
+    flags = PTE_FLAGS(*pte);
+
+    //copy out can not write!
+    if ((flags & PTE_W) == 0){
+      handlecow(pagetable, va0);
+      // finish cow, here should be writeable
+      if((pte = walk(pagetable, va0, 0)) == 0)
+        panic("copyout: pte should exist");
+      if((*pte & PTE_V) == 0)
+        panic("copyout: page not present");
+
+      flags = PTE_FLAGS(*pte);
+    
+      if ((flags & PTE_W) == 0)
+        return -1;
+    }
+
+    pa0 = PTE2PA(*pte);
+
+    // if(pa0 == 0)
+    //   return -1;
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -440,3 +486,49 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+// handle cow, return 0 if success, -1 if run out of memory
+int 
+handlecow(pagetable_t pagetable, uint64 va) 
+{
+  pte_t *pte;
+  uint64 pa;
+  uint flags;
+  char *mem;
+  va = PGROUNDDOWN(va);
+
+  // allocate new page and clear it
+  mem = kalloc();
+  if(mem == 0){
+    return -1;
+  }
+  memset(mem, 0, PGSIZE);
+
+  // get the pte
+  if((pte = walk(pagetable, va, 0)) == 0)
+    panic("handlecow: pte should exist");
+  if((*pte & PTE_V) == 0){
+    printf("%p %p %p\n", va, PTE_FLAGS(*pte), PTE2PA(*pte));
+    panic("handlecow: page not present");
+  }
+    
+  
+  // get the flag and jundge if cow. If so, modify to writable and not cow
+  flags = PTE_FLAGS(*pte);
+  
+  flags |= PTE_W;
+  flags &= ERASE_COW;
+
+  // get old pa and copy the content to new allocated page
+  pa = PTE2PA(*pte);
+  memmove(mem, (char*)pa, PGSIZE);
+
+  // modify pte with mem and flag
+  *pte = flags | PA2PTE((uint64)mem);
+
+  kfree((void*)pa);
+
+  return 0;
+}
+
+

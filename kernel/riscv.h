@@ -332,6 +332,9 @@ sfence_vma()
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // 1 -> user can access
 
+//we set this reserved bit for cow
+#define PTE_C (1L << 8) // 1 -> user can access
+
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
 
@@ -349,6 +352,9 @@ sfence_vma()
 // Sv39, to avoid having to sign-extend virtual addresses
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+#define ERASE_WRITE ~PTE_W
+#define ERASE_COW ~PTE_C
 
 typedef uint64 pte_t;
 typedef uint64 *pagetable_t; // 512 PTEs

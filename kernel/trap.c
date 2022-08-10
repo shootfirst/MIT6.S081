@@ -67,6 +67,32 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if(r_scause() == 15){
+
+
+    // handle cow
+    uint64 pagefaultaddr = r_stval();
+
+    if (pagefaultaddr >= MAXVA) {
+      printf("usertrap(): address is larger than max pid=%d\n", p->pid);
+      p->killed = 1;
+    } else if (pagefaultaddr >= p->sz) {
+      printf("usertrap(): address is larger than size of process pid=%d\n", p->pid);
+      p->killed = 1;
+    } else {
+      
+      pte_t *pte;
+      pte = walk(p->pagetable, pagefaultaddr, 0);
+      if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_C) == 0 || (*pte & PTE_U) == 0) {
+        printf("usertrap(): aother cow problem%d\n", p->pid);
+        p->killed = 1;
+      } else if (handlecow(p->pagetable, pagefaultaddr) == -1) {
+        printf("usertrap(): run out of memory pid=%d\n", p->pid);
+        p->killed = 1;
+      }
+      
+    }
+
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());

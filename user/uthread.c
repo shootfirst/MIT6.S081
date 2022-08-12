@@ -9,12 +9,13 @@
 
 #define STACK_SIZE  8192
 #define MAX_THREAD  4
+#define CALLEE_REGISTER_NUM  14
 
 
 struct thread {
   char       stack[STACK_SIZE]; /* the thread's stack */
   int        state;             /* FREE, RUNNING, RUNNABLE */
-
+  uint64     registers[CALLEE_REGISTER_NUM];     /* the registers of thread */
 };
 struct thread all_thread[MAX_THREAD];
 struct thread *current_thread;
@@ -63,6 +64,7 @@ thread_schedule(void)
      * Invoke thread_switch to switch from t to next_thread:
      * thread_switch(??, ??);
      */
+    thread_switch((uint64)t->registers, (uint64)current_thread->registers);
   } else
     next_thread = 0;
 }
@@ -77,6 +79,14 @@ thread_create(void (*func)())
   }
   t->state = RUNNABLE;
   // YOUR CODE HERE
+
+  // let ra point to start of func
+  t->registers[0] = (uint64)func;
+  // let sp point to top of its own stack
+  t->registers[1] = (uint64)t->stack + STACK_SIZE - 1;
+  // clear other registers
+  for(int i = 2; i < CALLEE_REGISTER_NUM; i++) 
+    t->registers[i] = 0x0L;
 }
 
 void 

@@ -68,6 +68,33 @@ kfree(void *pa)
   release(&kmem[i].lock);
 }
 
+void
+steal(int cpu)
+{
+  struct run *p;
+  for (int m = 1; m < NCPU; m++) {
+    int i = (m + cpu) % NCPU;
+    acquire(&kmem[i].lock);
+    p = kmem[i].freelist;
+    if (p == 0) {
+      release(&kmem[i].lock);
+      continue;
+    }
+    kmem[cpu].freelist = p;
+    for (int j = 0; j < 512; j++) {
+      if(p->next)
+        p = p->next;
+      else 
+        break;
+    }
+    kmem[i].freelist = p->next;
+    p->next = 0;
+    release(&kmem[i].lock);
+    break;
+    
+  }
+}
+
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
@@ -86,28 +113,7 @@ kalloc(void)
     kmem[cpu].freelist = r->next;
   else 
   {
-    struct run *p;
-    for (int m = 1; m < NCPU; m++) {
-      int i = (m + cpu) % NCPU;
-      acquire(&kmem[i].lock);
-      p = kmem[i].freelist;
-      if (p == 0) {
-        release(&kmem[i].lock);
-        continue;
-      }
-      kmem[cpu].freelist = p;
-      for (int j = 0; j < 128; j++) {
-        if(p->next)
-          p = p->next;
-        else 
-          break;
-      }
-      kmem[i].freelist = p->next;
-      p->next = 0;
-      release(&kmem[i].lock);
-      break;
-      
-    }
+    steal(cpu);
       
     r = kmem[cpu].freelist;
     if (r) 

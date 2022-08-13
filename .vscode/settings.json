@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "condition_variable": "c",
+        "*.tcc": "c",
+        "fstream": "c",
+        "mutex": "c",
+        "ostream": "c",
+        "user.h": "c",
+        "string_view": "c"
+    }
+}

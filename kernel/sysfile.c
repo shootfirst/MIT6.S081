@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "buf.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -308,6 +309,35 @@ sys_open(void)
       end_op();
       return -1;
     }
+
+    if(ip->type == T_SYMLINK && (omode & O_NOFOLLOW) != O_NOFOLLOW){
+      int find = 0;
+      if (readi(ip, 0, (uint64)path, 0, ip->size) != ip->size){
+        end_op();
+        return -1;
+      }
+      for(int i = 0; i < 10; i++){
+        if((ip = namei(path)) == 0){
+          end_op();
+          return -1;
+        } else {
+          if (ip->type != T_SYMLINK) {
+            find = 1;
+            break;
+          } else {
+            if (readi(ip, 0, (uint64)path, 0, ip->size) != ip->size){
+              end_op();
+              return -1;
+            }
+          }
+        }
+      }
+      if(find == 0) {
+        end_op();
+        return -1;
+      }
+    }
+
     ilock(ip);
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
@@ -315,6 +345,7 @@ sys_open(void)
       return -1;
     }
   }
+
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
     iunlockput(ip);
@@ -330,6 +361,8 @@ sys_open(void)
     return -1;
   }
 
+  
+
   if(ip->type == T_DEVICE){
     f->type = FD_DEVICE;
     f->major = ip->major;
@@ -340,6 +373,8 @@ sys_open(void)
   f->ip = ip;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+  
 
   if((omode & O_TRUNC) && ip->type == T_FILE){
     itrunc(ip);
@@ -484,3 +519,44 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_symlink(void)
+{
+  char target[MAXPATH], path[MAXPATH];
+  struct inode *dp, *ip;
+
+  if(argstr(0, target, MAXPATH) < 0 || argstr(1, path, MAXPATH) < 0)
+    return -1;
+
+  begin_op();
+  if((dp = namei(target)) != 0){
+    ilock(dp);
+    if(dp->type == T_DIR){
+      iunlockput(dp);
+      end_op();
+      return -1;
+    }
+    iunlockput(dp);
+  }
+
+  
+  ip = create(path, T_SYMLINK, 0, 0);
+  if(ip == 0){
+    end_op();
+    return -1;
+  }
+
+  
+  if(writei(ip, 0, (uint64)target, 0, strlen(target)) < strlen(target)){
+    end_op();
+    return -1;
+  }
+
+  iunlockput(ip);
+  end_op();
+
+  return 0;
+}
+
+

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "string_view": "c",
+        "random": "c",
+        "future": "c"
+    }
+}

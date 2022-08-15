@@ -5,6 +5,10 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
+#include "fcntl.h"
 
 struct spinlock tickslock;
 uint ticks;
@@ -49,7 +53,7 @@ usertrap(void)
   
   // save user program counter.
   p->trapframe->epc = r_sepc();
-  
+
   if(r_scause() == 8){
     // system call
 
@@ -67,7 +71,42 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
+  } 
+  else if(r_scause() == 13 || r_scause() == 15) {
+    // first we locate the page fault address in vma_vec
+    uint64 pgftaddr = r_stval();
+    for(int i = 0; i < NVMA; i++) {
+      if(p->vmavec[i].valid && p->vmavec[i].start <= pgftaddr && p->vmavec[i].end > pgftaddr) {
+        // now we find it, first we allocate a page
+        char *mem = kalloc();
+        if(mem == 0)
+          break;
+        uint64 va = PGROUNDDOWN(pgftaddr);
+        // decide perm
+        int perm;
+        if(p->vmavec[i].prot == PROT_WRITE)
+          perm = PTE_W|PTE_R|PTE_U|PTE_X;
+        else
+          perm = PTE_R|PTE_U|PTE_X;
+        // map it
+        if(mappages(p->pagetable, va, PGSIZE, (uint64)mem, perm) != 0){
+          kfree(mem);
+          break;
+        }
+        // then we read from file
+        struct inode *ip = p->vmavec[i].file->ip;
+        uint off = (uint)(va - p->vmavec[i].start);
+        ilock(ip);
+        readi(ip, 1, va, off, PGSIZE);
+        iunlock(ip);
+      }
+    }
+    // break to here
+    printf("can not resolve mmap page fault\n");
+    p->killed = 1;
+  } 
+  
+  else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;

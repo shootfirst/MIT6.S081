@@ -484,3 +484,47 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_mmap(void)
+{
+  uint64 addr;
+  int length, prot, flags, fd, offset; 
+
+  if(argaddr(0, &addr) < 0) {
+    return -1;
+  }
+  if(argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || 
+            argint(4, &fd) < 0 || argint(5, &offset) < 0) {
+    return -1;
+  }
+  struct proc *p = myproc();
+  struct file *f = p->ofile[fd];
+  if(!f->writable && flags == MAP_SHARED && prot == PROT_WRITE) 
+    return -1;
+  
+  for(int i = 0; i < NVMA; i++) {
+    if(!p->vmavec[i].valid) {
+      p->vmavec[i].valid = 1;
+      p->vmavec[i].start = PGROUNDDOWN(p->max_vma - length);
+      p->vmavec[i].end = p->vmavec[i].start + length;
+      p->vmavec[i].prot = prot;
+      p->vmavec[i].flags = flags;
+      p->vmavec[i].file = f;
+      // to avoid be closed
+      p->vmavec[i].file->ref += 1;
+      // decrease max_vma
+      p->max_vma = p->vmavec[i].start;
+      return p->vmavec[i].start;
+    }
+  }
+
+  return -1;
+  
+}
+
+uint64
+sys_munmap(void)
+{
+  return -1;
+}

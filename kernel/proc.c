@@ -128,6 +128,9 @@ found:
     return 0;
   }
 
+  // init max mmap pointer
+  p->max_vma = TRAPFRAME;
+
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));

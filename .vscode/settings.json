@@ -2,6 +2,12 @@
     "files.associations": {
         "string_view": "c",
         "random": "c",
-        "future": "c"
+        "future": "c",
+        "array": "c",
+        "deque": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "initializer_list": "c"
     }
 }

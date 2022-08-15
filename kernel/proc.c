@@ -3,8 +3,12 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
 #include "proc.h"
 #include "defs.h"
+#include "fcntl.h"
 
 struct cpu cpus[NCPU];
 
@@ -353,6 +357,17 @@ exit(int status)
       struct file *f = p->ofile[fd];
       fileclose(f);
       p->ofile[fd] = 0;
+    }
+  }
+
+  for(int i = NVMA - 1; i >= 0; i--) {
+    if(p->vmavec[i].valid) {
+      if (p->vmavec[i].flags == MAP_SHARED) {
+        filewrite(p->vmavec[i].file, p->vmavec[i].start, p->vmavec[i].end - p->vmavec[i].start);
+      }
+      uvmunmap(p->pagetable, p->vmavec[i].start, (p->vmavec[i].end - p->vmavec[i].start) / PGSIZE, 1);
+      p->vmavec[i].file->ref--;
+      p->vmavec[i].valid = 0;
     }
   }
 

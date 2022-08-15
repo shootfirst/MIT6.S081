@@ -488,14 +488,10 @@ sys_pipe(void)
 uint64
 sys_mmap(void)
 {
-  uint64 addr;
-  int length, prot, flags, fd, offset; 
+  int length, prot, flags, fd; 
 
-  if(argaddr(0, &addr) < 0) {
-    return -1;
-  }
   if(argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || 
-            argint(4, &fd) < 0 || argint(5, &offset) < 0) {
+            argint(4, &fd) < 0) {
     return -1;
   }
   struct proc *p = myproc();
@@ -518,13 +514,45 @@ sys_mmap(void)
       return p->vmavec[i].start;
     }
   }
-
   return -1;
-  
 }
 
 uint64
 sys_munmap(void)
 {
+  uint64 addr;
+  int length; 
+
+  if(argaddr(0, &addr) < 0 || argint(1, &length) < 0) {
+    return -1;
+  }
+  struct proc *p = myproc();
+  for(int i = 0; i < NVMA; i++) {
+    if(p->vmavec[i].valid && p->vmavec[i].start <= addr && addr < p->vmavec[i].end) {
+      uint64 start = PGROUNDDOWN(addr);
+      uint64 end = PGROUNDUP(addr + length);
+      if (p->vmavec[i].flags == MAP_SHARED) {
+        filewrite(p->vmavec[i].file, start, end - start);
+      }
+      if (start == p->vmavec[i].start && end == p->vmavec[i].end) {
+        uvmunmap(p->pagetable, start, (end - start) / PGSIZE, 1);
+        p->vmavec[i].file->ref --;
+        p->vmavec[i].valid = 0;
+      } else if(start == p->vmavec[i].start && end < p->vmavec[i].end) {
+        uvmunmap(p->pagetable, start, (end - start) / PGSIZE, 1);
+        p->vmavec[i].start = end;
+      } else if(start == p->vmavec[i].start && end < p->vmavec[i].end) {
+        uvmunmap(p->pagetable, start, (end - start) / PGSIZE, 1);
+        p->vmavec[i].end = start;
+      } else {
+        printf("illegal munmap\n");
+        return -1;
+      }
+      
+
+      return 0;
+    }
+  }
+
   return -1;
 }

@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "memlayout.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -496,14 +497,14 @@ sys_mmap(void)
   }
   struct proc *p = myproc();
   struct file *f = p->ofile[fd];
-  if(!f->writable && flags == MAP_SHARED && prot == PROT_WRITE) 
+  if(!f->writable && flags & MAP_SHARED && prot & PROT_WRITE) 
     return -1;
   
   for(int i = 0; i < NVMA; i++) {
     if(!p->vmavec[i].valid) {
       p->vmavec[i].valid = 1;
       p->vmavec[i].start = PGROUNDDOWN(p->max_vma - length);
-      p->vmavec[i].end = p->vmavec[i].start + length;
+      p->vmavec[i].length = ((length + PGSIZE - 1) / PGSIZE) * PGSIZE;
       p->vmavec[i].prot = prot;
       p->vmavec[i].flags = flags;
       p->vmavec[i].file = f;
@@ -527,32 +528,35 @@ sys_munmap(void)
     return -1;
   }
   struct proc *p = myproc();
+
   for(int i = 0; i < NVMA; i++) {
-    if(p->vmavec[i].valid && p->vmavec[i].start <= addr && addr < p->vmavec[i].end) {
-      uint64 start = PGROUNDDOWN(addr);
-      uint64 end = PGROUNDUP(addr + length);
-      if (p->vmavec[i].flags == MAP_SHARED) {
-        filewrite(p->vmavec[i].file, start, end - start);
+
+    if(p->vmavec[i].valid && p->vmavec[i].start <= addr && addr < p->vmavec[i].start + p->vmavec[i].length) {
+
+      if (p->vmavec[i].flags & MAP_SHARED) {
+        filewrite(p->vmavec[i].file, addr, length);
       }
-      if (start == p->vmavec[i].start && end == p->vmavec[i].end) {
-        uvmunmap(p->pagetable, start, (end - start) / PGSIZE, 1);
-        p->vmavec[i].file->ref --;
+
+      if (p->vmavec[i].start == addr && p->vmavec[i].length == length) {
+        // unmap the whole vma
+        uvmunmap(p->pagetable, addr, length/PGSIZE, 1);
+        p->vmavec[i].file->ref--;
         p->vmavec[i].valid = 0;
-      } else if(start == p->vmavec[i].start && end < p->vmavec[i].end) {
-        uvmunmap(p->pagetable, start, (end - start) / PGSIZE, 1);
-        p->vmavec[i].start = end;
-      } else if(start == p->vmavec[i].start && end < p->vmavec[i].end) {
-        uvmunmap(p->pagetable, start, (end - start) / PGSIZE, 1);
-        p->vmavec[i].end = start;
-      } else {
-        printf("illegal munmap\n");
-        return -1;
+      } else if (p->vmavec[i].start == addr) {
+        uvmunmap(p->pagetable, addr, length/PGSIZE, 1);
+        p->vmavec[i].start += length;
+        p->vmavec[i].length -= length;
+      } else if (p->vmavec[i].start + p->vmavec[i].length == addr + length){
+        // unmap from the end
+        uvmunmap(p->pagetable, addr, length/PGSIZE, 1);
+        p->vmavec[i].length -= length;
       }
-      
 
       return 0;
     }
+    
   }
 
   return -1;
 }
+

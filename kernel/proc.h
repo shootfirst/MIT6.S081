@@ -85,7 +85,7 @@ enum procstate { UNUSED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 struct VMA {
   int valid;
   uint64 start;
-  uint64 end;
+  uint64 length;
   int prot;
   int flags;
   struct file *file;
@@ -103,9 +103,6 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
 
-  struct VMA vmavec[NVMA];     // Record mmap area
-  uint64 max_vma;              // The largest vma pointer
-  
   // these are private to the process, so p->lock need not be held.
   uint64 kstack;               // Virtual address of kernel stack
   uint64 sz;                   // Size of process memory (bytes)
@@ -115,4 +112,9 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  struct VMA vmavec[NVMA];     // Record mmap area
+  uint64 max_vma;              // The largest vma pointer
+  
 };
+

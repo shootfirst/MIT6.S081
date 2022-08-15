@@ -72,38 +72,87 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } 
-  else if(r_scause() == 13 || r_scause() == 15) {
-    // first we locate the page fault address in vma_vec
-    uint64 pgftaddr = r_stval();
-    for(int i = 0; i < NVMA; i++) {
-      if(p->vmavec[i].valid && p->vmavec[i].start <= pgftaddr && p->vmavec[i].end > pgftaddr) {
-        // now we find it, first we allocate a page
-        char *mem = kalloc();
-        if(mem == 0)
+  // else if(r_scause() == 13 || r_scause() == 15) {
+  //   // first we locate the page fault address in vma_vec
+  //   int find = 0;
+  //   uint64 va = r_stval();
+  //   for(int i = 0; i < NVMA; i++) {
+  //     if(p->vmavec[i].valid && p->vmavec[i].start <= va && p->vmavec[i].start + p->vmavec[i].length > va) {
+  //       // now we find it, first we allocate a page
+  //       find = 1;
+  //       char *mem = kalloc();
+  //       if(mem == 0) {
+  //         p->killed = 1;
+  //         break;
+  //       }
+          
+  //       va = PGROUNDDOWN(va);
+  //       // decide perm
+  //       int perm;
+  //       if(p->vmavec[i].prot == PROT_WRITE)
+  //         perm = PTE_W|PTE_R|PTE_U|PTE_X;
+  //       else
+  //         perm = PTE_R|PTE_U|PTE_X;
+  //       // map it
+  //       if(mappages(p->pagetable, va, PGSIZE, (uint64)mem, perm) != 0){
+  //         kfree((void*)mem);
+  //         p->killed = 1;
+  //         break;
+  //       }
+  //       // then we read from file
+  //       ilock(p->vmavec[i].file->ip);
+  //       readi(p->vmavec[i].file->ip, 1, va, (uint)(va - p->vmavec[i].start), PGSIZE);
+  //       iunlock(p->vmavec[i].file->ip);
+  //     }
+  //   }
+  //   if (find == 0) {
+  //     p->killed = 1;
+  //   }
+    
+  // // } 
+
+  else if (r_scause() == 13 || r_scause() == 15) // page fault
+  {
+    uint64 va = r_stval();
+
+    
+    int i;
+    // check if the pagefault page is in one virtual memory area
+    for (i = 0; i < NVMA; i++) {
+      if (p->vmavec[i].valid) {
+        if (p->vmavec[i].start <= va && (p->vmavec[i].start + p->vmavec[i].length) > va)
           break;
-        uint64 va = PGROUNDDOWN(pgftaddr);
-        // decide perm
-        int perm;
-        if(p->vmavec[i].prot == PROT_WRITE)
-          perm = PTE_W|PTE_R|PTE_U|PTE_X;
-        else
-          perm = PTE_R|PTE_U|PTE_X;
-        // map it
-        if(mappages(p->pagetable, va, PGSIZE, (uint64)mem, perm) != 0){
-          kfree(mem);
-          break;
-        }
-        // then we read from file
-        struct inode *ip = p->vmavec[i].file->ip;
-        uint off = (uint)(va - p->vmavec[i].start);
-        ilock(ip);
-        readi(ip, 1, va, off, PGSIZE);
-        iunlock(ip);
       }
     }
-    // break to here
-    printf("can not resolve mmap page fault\n");
-    p->killed = 1;
+    if (i == NVMA) {
+      // not in any vma
+      p->killed = 1;
+    } else {
+      // allocate page
+      uint64 ka = (uint64) kalloc();
+      if (ka == 0){
+        p->killed = 1;
+      } else {
+        // printf("access va %d\n", va);
+        // printf("sz : %d\n", p->sz);
+        // printf("addr : %d\n", p->vmavec[i].addr);
+        memset((void *)ka, 0, PGSIZE);
+        va = PGROUNDDOWN(va);
+        ilock(p->vmavec[i].file->ip);
+        readi(p->vmavec[i].file->ip, 0, ka, va - p->vmavec[i].start, PGSIZE);
+        iunlock(p->vmavec[i].file->ip);
+        uint64 pm = PTE_U;
+        if (p->vmavec[i].prot & PROT_READ)
+          pm |= PTE_R;
+        if (p->vmavec[i].prot & PROT_WRITE)
+          pm |= PTE_W;
+        if(mappages(p->pagetable, va, PGSIZE, ka, pm) != 0) {
+          kfree((void *)ka);
+          p->killed = 1;
+        }
+      }
+    }
+    
   } 
   
   else {

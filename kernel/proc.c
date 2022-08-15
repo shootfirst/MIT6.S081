@@ -134,7 +134,7 @@ found:
 
   // init max mmap pointer
   p->max_vma = TRAPFRAME;
-
+  
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -280,6 +280,20 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
+  //Copy vms form parent to child
+  for (int i = 0; i < NVMA; i++) {
+    if (p->vmavec[i].valid) {
+      np->vmavec[i].valid = 1;
+      np->vmavec[i].start = p->vmavec[i].start;
+      np->vmavec[i].length = p->vmavec[i].length;
+      np->vmavec[i].prot = p->vmavec[i].prot;
+      np->vmavec[i].flags = p->vmavec[i].flags;
+      np->vmavec[i].file = p->vmavec[i].file;
+      np->vmavec[i].file->ref++;
+    }
+  }
+  np->max_vma = p->max_vma;
+
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
@@ -362,12 +376,10 @@ exit(int status)
 
   for(int i = NVMA - 1; i >= 0; i--) {
     if(p->vmavec[i].valid) {
-      if (p->vmavec[i].flags == MAP_SHARED) {
-        filewrite(p->vmavec[i].file, p->vmavec[i].start, p->vmavec[i].end - p->vmavec[i].start);
-      }
-      uvmunmap(p->pagetable, p->vmavec[i].start, (p->vmavec[i].end - p->vmavec[i].start) / PGSIZE, 1);
+      if (p->vmavec[i].flags == MAP_SHARED)
+        filewrite(p->vmavec[i].file, p->vmavec[i].start, p->vmavec[i].length / PGSIZE);
+      uvmunmap(p->pagetable, p->vmavec[i].start, p->vmavec[i].length / PGSIZE, 1);
       p->vmavec[i].file->ref--;
-      p->vmavec[i].valid = 0;
     }
   }
 

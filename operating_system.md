@@ -69,7 +69,12 @@ socket、bind、listen、accept、connect
 
 ### 虚拟内存
 
+##### 内存分段
+
+##### 内存分页
+
 ### 进程地址空间
+
 
 # 文件管理
 

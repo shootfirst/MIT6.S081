@@ -1,6 +1,149 @@
-# operating system
+# Operating System
 
-# 进程管理
+## 进程管理
+
+#### 系统调用接口
+
+##### fork
+
+##### execv
+
+##### wait
+
+##### exit
+
+##### nanosleep
+
+##### clone
+
+##### vfork
+
+
+
+## 进程通信、信号和锁
+
+
+## 内存管理
+
+#### 系统调用
+
+##### brk
+
+##### mmap
+
+##### munmap
+
+##### mlock 
+
+##### munlock 
+
+##### mprotect
+
+##### getpagesize
+
+##### swapon
+
+##### swapoff
+
+##### mincore
+
+##### movepage
+
+##### mbind
+
+##### migratepages
+
+## 文件管理
+
+#### 系统调用
+
+##### open
+
+##### read
+
+##### write
+
+##### pread
+
+##### pwrite
+
+##### readv
+
+##### writev
+
+##### mkdir
+
+##### chdir
+
+##### rename
+
+##### lseek
+
+##### stat
+
+##### getdents
+
+##### dup
+
+##### link
+
+##### unlink
+
+##### symlink
+
+##### pipe
+
+##### fcntl
+
+##### flock
+
+##### close
+
+##### fsync
+
+
+## IO管理
+
+#### 系统调用
+
+##### ioctl
+
+##### select
+
+##### poll
+
+##### epoll_create
+
+##### epoll_ctl
+
+##### epoll_wait
+
+
+## 网络管理
+
+#### 系统调用
+
+##### socket
+
+##### bind
+
+##### listen
+
+##### connect
+
+##### accept
+
+##### receive
+
+##### send
+
+##### shutdown
+
+
+
+
+
+
 
 ### 并行和并发区别
 

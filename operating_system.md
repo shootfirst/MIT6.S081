@@ -1,6 +1,6 @@
 # operating system
 
-# 进程
+# 进程管理
 
 ### 并行和并发区别
 
@@ -91,7 +91,9 @@ socket、bind、listen、accept、connect
 ### 硬链接与软链接
 
 
-# 设备io和网络管理
+# 设备io
+
+# 网络管理
 
 
 

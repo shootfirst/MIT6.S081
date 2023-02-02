@@ -1,5 +1,6 @@
 # Operating System
 
+
 ## 进程管理
 
 #### 基本系统调用接口
@@ -99,6 +100,8 @@ futex
 
 
 
+
+
 ## 内存管理
 
 #### 核心系统调用接口
@@ -129,15 +132,26 @@ slab分配器
 
 ##### 优缺点
 
-##### swap机制
+##### SWAP机制
 
-##### lazy机制
+##### LAZY机制
 
 ##### 相关系统调用
 
 mlock munlock mincore mprotect 
 
 #### 进程地址空间
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## IO管理
@@ -217,19 +231,19 @@ socket bind listen connect accept receive send shutdown
 
 返回是否能够对该文件进行无阻塞读写的信息
 
-##### select
+##### SELECT
 
 系统调用：select
 
-##### poll
+##### POLL
 
 系统调用：poll
 
-##### epoll
+##### EPOLL
 
 系统调用：epoll_create epoll_ctl epoll_wait
 
-##### epoll优势
+##### EPOLL优势
 
 
 #### 异步IO

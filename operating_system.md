@@ -144,7 +144,7 @@ mlock munlock mincore mprotect
 
 #### VFS
 
-linux下一切皆文件，linux一共有7种类型的文件
+linux下一切皆文件，linux一共有7种类型的文件，下面除非特别提到原意，否则文件指的都是vfs层的文件
 
 + 普通文件
 
@@ -160,25 +160,82 @@ linux下一切皆文件，linux一共有7种类型的文件
 
 + 链接文件
 
-file结构体与inode结构体
+file结构体 inode结构体
 
-#### 文件管理
+#### 文件（原意）管理
+
+##### 系统调用
 
 open read write close mkdir chdir rename lseek stat getdents link unlink symlink dup readv pread writev pwrite fsync sync
 
+##### 文件系统结构
+
++ 超级块
+
++ 位图
+
++ 索引节点
+
++ 数据块
+
 #### IO设备管理
 
-ioctl 
+##### 系统调用
+
+ioctl
+
+##### 层次结构
+
++ 文件系统层
+
++ 块缓存层
+
++ 块层
+
++ 设备层
+
 
 #### 网络管理
 
+##### 系统调用
+
 socket bind listen connect accept receive send shutdown
+
+##### 套接字关联
+
++ 内核全局套接字表
+
++ 套接字半连接队列
+
++ 套接字全连接队列
+
+
 
 #### IO多路复用
 
-select poll epoll_create epoll_ctl epoll_wait
+##### 内核的poll函数
+
+返回是否能够对该文件进行无阻塞读写的信息
+
+##### select
+
+系统调用：select
+
+##### poll
+
+系统调用：poll
+
+##### epoll
+
+系统调用：epoll_create epoll_ctl epoll_wait
+
+##### epoll优势
+
 
 #### 异步IO
 
+##### 相关系统调用
+
 io_uring_setup io_uring_enter io_uring_control
+
 

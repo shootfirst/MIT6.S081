@@ -3,9 +3,11 @@
 
 ## 进程管理
 
+
 #### 基本系统调用接口
 
 fork execv wait exit nanosleep vfork clone
+
 
 #### 进程状态
 
@@ -21,11 +23,13 @@ fork execv wait exit nanosleep vfork clone
 
 + 进程的摧毁
 
+
 #### 进程与线程的区别
 
 + clone是如何创建线程（理解的关键）
 
 + 内核线程与用户线程
+
 
 #### 调度算法
 
@@ -41,7 +45,9 @@ fork execv wait exit nanosleep vfork clone
 
 + cfs调度算法（vtime决定调度时机，weight决定运行时间）
 
+
 #### 并行与并发
+
 
 #### 进程通信
 
@@ -111,6 +117,8 @@ brk mmap munmap
 ##### 伙伴分配系统
 
 ##### vmalloc
+
++ vm_struct
 
 ##### kmalloc（slab）
 
@@ -195,16 +203,26 @@ stack
 
 
 
+## 文件管理
 
+#### 系统调用
 
+open read write close mkdir chdir rename lseek stat getdents link unlink symlink dup readv pread writev pwrite fsync sync
 
+#### 文件系统结构
 
++ 超级块
 
++ 位图
 
++ 索引节点
+
++ 数据块
 
 
 
 ## IO管理
+
 
 #### VFS虚拟文件系统
 
@@ -226,33 +244,19 @@ linux下一切皆文件，linux一共有7种类型的文件，下面除非特别
 
 file结构体 inode结构体
 
+
 #### IO模型
 
-##### 阻塞IO
++ 阻塞IO
 
-##### 非阻塞IO
++ 非阻塞IO
 
-##### 多路复用IO
++ 多路复用IO
 
-##### 信号驱动IO
++ 信号驱动IO
 
-##### 异步IO
++ 异步IO
 
-#### 文件（原意）管理
-
-##### 系统调用
-
-open read write close mkdir chdir rename lseek stat getdents link unlink symlink dup readv pread writev pwrite fsync sync
-
-##### 文件系统结构
-
-+ 超级块
-
-+ 位图
-
-+ 索引节点
-
-+ 数据块
 
 #### IO设备管理
 
@@ -264,18 +268,18 @@ ioctl
 
 + 文件系统层
 
-+ 块缓存层
++ 设备无关软件
 
-+ 块层
++ 驱动程序
 
-+ 设备层
++ 中断
 
 
 #### 网络管理
 
 ##### 系统调用
 
-socket bind listen connect accept receive send shutdown
+socket bind listen accept connect receive send shutdown
 
 ##### 套接字关联
 
@@ -305,7 +309,9 @@ socket bind listen connect accept receive send shutdown
 
 系统调用：epoll_create epoll_ctl epoll_wait
 
-##### EPOLL优势
++ event_poll
+
++ epitem
 
 
 #### 异步IO

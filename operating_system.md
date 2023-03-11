@@ -312,6 +312,14 @@ socket bind listen accept connect receive send shutdown
 
 #### 零拷贝
 
+##### read + write
+
+##### mmap + write
+
+##### sendfile
+
+##### splice
+
 
 #### 异步IO
 

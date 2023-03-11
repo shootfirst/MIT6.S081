@@ -39,7 +39,7 @@ fork execv wait exit nanosleep vfork clone
 
 + 时间片轮转调度算法
 
-+ cfs调度算法
++ cfs调度算法（vtime决定调度时机，weight决定运行时间）
 
 + linux o1调度算法
 

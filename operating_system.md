@@ -307,11 +307,7 @@ socket bind listen accept connect receive send shutdown
 
 ##### EPOLL
 
-系统调用：epoll_create epoll_ctl epoll_wait
-
-+ event_poll（红黑树、就绪队列、等待队列）
-
-+ epitem
+![epoll](epoll.png)
 
 
 #### 异步IO

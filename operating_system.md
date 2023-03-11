@@ -309,7 +309,7 @@ socket bind listen accept connect receive send shutdown
 
 系统调用：epoll_create epoll_ctl epoll_wait
 
-+ event_poll
++ event_poll（红黑树、就绪队列、等待队列）
 
 + epitem
 

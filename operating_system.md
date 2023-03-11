@@ -7,6 +7,8 @@
 
 fork execv wait exit nanosleep vfork clone
 
+clone3({flags=CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM|CLONE_SETTLS|CLONE_PARENT_SETTID|CLONE_CHILD_CLEARTID, child_tid=0x7f9686062910, parent_tid=0x7f9686062910, exit_signal=0, stack=0x7f9685862000, stack_size=0x7fff00, tls=0x7f9686062640} => {parent_tid=[3596]}, 88) = 3596
+
 #### 进程状态
 
 + 进程的创建

@@ -7,8 +7,6 @@
 
 fork execv wait exit nanosleep vfork clone
 
-clone3({flags=CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM|CLONE_SETTLS|CLONE_PARENT_SETTID|CLONE_CHILD_CLEARTID, child_tid=0x7f9686062910, parent_tid=0x7f9686062910, exit_signal=0, stack=0x7f9685862000, stack_size=0x7fff00, tls=0x7f9686062640} => {parent_tid=[3596]}, 88) = 3596
-
 #### 进程状态
 
 + 进程的创建
@@ -63,7 +61,6 @@ shmget、shmat、shmdt、shmctl
 
 semget、semop、semctl
 
-
 #### 信号
 
 信号处理的时机，是进程陷入内核，从内核态返回时检查处理
@@ -104,33 +101,54 @@ futex
 
 ## 内存管理
 
+
 #### 核心系统调用接口
 
 brk mmap munmap 
 
-#### 内存分配与回收
+#### 物理内存分配与回收
 
 ##### 伙伴分配系统
 
-##### 用户态
+##### tcmalloc
 
-mallco与free，基于brk和mmap系统调用
+##### jemalloc
 
-##### 内核态
+##### ptmalloc
 
-+ vmalloc
+##### vmalloc
 
-+ kmalloc
+##### kmalloc（slab）
 
-slab分配器
++ kmem_cache
+
+  - kmem_cache_node
+
+    * free
+
+    * full
+
+    * partial
+
+      + page
+      
+        - 着色偏移
+        - free_list
+        - object
+        
+  - array_cache
+    
+    * avaliable
+    * limit
+    * entry数组
+        
+
 
 #### 虚拟内存
 
 ##### 多级页表
 
 ##### 硬件支持
-
-##### 优缺点
 
 ##### SWAP机制
 
@@ -140,7 +158,45 @@ slab分配器
 
 mlock munlock mincore mprotect 
 
+
 #### 进程地址空间
+
+.test
+
+.rodata
+
+.data
+
+.bss
+
+heap
+
+mmap_area
+
+stack
+
+
+#### linux内存回收
+
+##### 内存阈值
+
++ pages_high
+
++ pages_low
+
+异步回收内存
+
++ pages_min
+
+同步回收内存
+
+##### 回收策略
+
++ 文件缓存页，写入硬盘
+
++ 匿名页（匿名映射，堆，栈），放入swap区域
+
+##### OOM
 
 
 

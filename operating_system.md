@@ -110,12 +110,6 @@ brk mmap munmap
 
 ##### 伙伴分配系统
 
-##### tcmalloc
-
-##### jemalloc
-
-##### ptmalloc
-
 ##### vmalloc
 
 ##### kmalloc（slab）

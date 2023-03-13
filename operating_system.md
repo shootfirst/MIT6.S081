@@ -313,8 +313,6 @@ socket bind listen accept connect receive send shutdown
 
 ##### sendfile
 
-##### splice
-
 
 #### 异步IO
 

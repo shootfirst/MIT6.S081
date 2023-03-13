@@ -320,4 +320,14 @@ socket bind listen accept connect receive send shutdown
 
 io_uring_setup io_uring_enter io_uring_control
 
+##### SQ与CQ
+
+##### 提交与收割
+
+IOPOLL：内核线程轮询IO设备
+
+SQPOLL：内核线程轮询请求队列
+
+
+
 

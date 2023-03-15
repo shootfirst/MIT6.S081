@@ -245,30 +245,43 @@ linux下一切皆文件，linux一共有7种类型的文件，下面除非特别
 file结构体 inode结构体
 
 
-#### 系统调用
-
-ioctl
-
 
 #### IO模型
 
-+ 阻塞IO
+##### 阻塞IO
 
-+ 非阻塞IO
+##### 非阻塞IO
 
-+ 多路复用IO
+##### 多路复用IO
 
-+ 信号驱动IO
+内核的poll函数
 
-+ 异步IO
++ SELECT
+
++ poll
+
++ EPOLL: 水平触发与边缘触发  惊群效应
+
+![epoll](epoll.png)
+
+##### 信号驱动IO
+
+##### 异步IO
+
+io_uring_setup io_uring_enter io_uring_register
+
++ SQ与CQ
+
++ 提交与收割
+
+  IOPOLL：内核线程轮询IO设备
+
+  SQPOLL：内核线程轮询请求队列
 
 
-#### IO设备管理
+#### 设备管理
 
-
-
-
-
+ioctl
 
 #### 网络管理
 
@@ -286,25 +299,6 @@ socket bind listen accept connect receive send shutdown
 
 
 
-#### IO多路复用
-
-##### 内核的poll函数
-
-返回是否能够对该文件进行无阻塞读写的信息
-
-##### SELECT
-
-系统调用：select
-
-##### POLL
-
-系统调用：poll
-
-##### EPOLL
-
-![epoll](epoll.png)
-
-
 #### 零拷贝
 
 ##### read + write
@@ -313,20 +307,6 @@ socket bind listen accept connect receive send shutdown
 
 ##### sendfile
 
-
-#### 异步IO
-
-##### 相关系统调用
-
-io_uring_setup io_uring_enter io_uring_control
-
-##### SQ与CQ
-
-##### 提交与收割
-
-IOPOLL：内核线程轮询IO设备
-
-SQPOLL：内核线程轮询请求队列
 
 
 

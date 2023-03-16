@@ -258,7 +258,7 @@ file结构体 inode结构体
 
 + SELECT
 
-+ poll
++ POLL
 
 + EPOLL: 水平触发与边缘触发  惊群效应
 

@@ -291,7 +291,7 @@ socket bind listen accept connect receive send shutdown
 
 ##### 套接字关联
 
-+ 内核全局套接字表
++ tcp已连接套接字，tcplisten套接字
 
 + 套接字半连接队列
 

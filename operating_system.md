@@ -230,7 +230,7 @@ io_uring_setup io_uring_enter io_uring_register
 
 ioctl
 
-#### 网络管理
+#### 网络
 
 ##### 系统调用
 

@@ -154,7 +154,7 @@ stack
 
 #### 系统调用
 
-open read write close mkdir chdir rename lseek stat getdents link unlink symlink dup readv pread writev pwrite fsync sync
+open read write close mkdir chdir rename lseek link unlink symlink dup sync
 
 #### 文件系统结构
 

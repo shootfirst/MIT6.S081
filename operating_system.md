@@ -112,49 +112,25 @@ futex
 
 brk mmap munmap 
 
+
 #### 物理内存分配与回收
 
 ##### 伙伴分配系统
 
 ##### vmalloc
 
-+ vm_struct
-
 ##### kmalloc（slab）
-
-+ kmem_cache
-
-  - kmem_cache_node
-
-    * free
-
-    * full
-
-    * partial
-
-      + page
-      
-        - 着色偏移
-        - free_list
-        - object
-        
-  - array_cache
-    
-    * avaliable
-    * limit
-    * entry数组
-        
 
 
 #### 虚拟内存
 
-##### 多级页表
++ 软件：多级页表
 
-##### 硬件支持
++ 硬件：MMU TLB 页表寄存器
 
-##### SWAP机制
++ SWAP
 
-##### LAZY机制
++ LAZY
 
 
 #### 进程地址空间

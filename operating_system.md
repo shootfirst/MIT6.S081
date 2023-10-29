@@ -156,10 +156,6 @@ brk mmap munmap
 
 ##### LAZY机制
 
-##### 相关系统调用
-
-mlock munlock mincore mprotect 
-
 
 #### 进程地址空间
 
@@ -176,31 +172,6 @@ heap
 mmap_area
 
 stack
-
-
-#### linux内存回收
-
-##### 内存阈值
-
-+ pages_high
-
-+ pages_low
-
-异步回收内存
-
-+ pages_min
-
-同步回收内存
-
-##### 回收策略
-
-+ 文件缓存页，写入硬盘
-
-+ 匿名页（匿名映射，堆，栈），放入swap区域
-
-##### OOM
-
-
 
 
 ## 文件管理
